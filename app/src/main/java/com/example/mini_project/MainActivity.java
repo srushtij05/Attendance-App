@@ -1,5 +1,6 @@
 package com.example.mini_project;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -10,6 +11,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -58,11 +60,11 @@ public class MainActivity extends AppCompatActivity {
         Cursor cursor = dbHelper.getClassTable();
 
         classItems.clear();
-        while (cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             int id = cursor.getInt(cursor.getColumnIndexOrThrow(DbHelper.C_ID));
             String classname = cursor.getString(cursor.getColumnIndexOrThrow(DbHelper.CLASS_NAME_KEY));
             String subjectname = cursor.getString(cursor.getColumnIndexOrThrow(DbHelper.SUBJECT_NAME_KEY));
-            classItems.add(new ClassItem(id,classname,subjectname));
+            classItems.add(new ClassItem(id, classname, subjectname));
         }
 
 
@@ -88,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("className", classItems.get(position).getClassName());
         intent.putExtra("subjectName", classItems.get(position).getSubjectName());
         intent.putExtra("position", position);
+        intent.putExtra("cid", classItems.get(position).getCid());
         startActivity(intent);
     }
 
@@ -100,13 +103,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addClass(String className, String subjectName) {
-        long cid = dbHelper.addClass(className,subjectName);
-        ClassItem classItem = new ClassItem(cid, className,subjectName);
+        long cid = dbHelper.addClass(className, subjectName);
+        ClassItem classItem = new ClassItem(cid, className, subjectName);
         classItems.add(classItem);
         classAdapter.notifyDataSetChanged();
 
 
     }
 
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
 
+        switch (item.getItemId()) {
+            case 0:
+                showUpdateDialog(item.getGroupId());
+                break;
+            case 1:
+                deleteClass(item.getGroupId());
+        }
+        return super.onContextItemSelected(item);
+    }
+
+    private void showUpdateDialog(int position) {
+
+        MyDialog dialog = new MyDialog();
+        dialog.show(getSupportFragmentManager(),MyDialog.CLASS_UPDATE_DIALOG);
+        dialog.setListener((className,subjectName)->updateClass(position,className,subjectName));
+    }
+
+    private void updateClass(int position, String className, String subjectName) {
+        dbHelper.updateClass(classItems.get(position).getCid(),className,subjectName);
+        classItems.get(position).setClassName(className);
+        classItems.get(position).setSubjectName(subjectName);
+        classAdapter.notifyItemChanged(position);
+    }
+
+
+    private void deleteClass(int position) {
+        dbHelper.deleteClass(classItems.get(position).getCid());
+        classItems.remove(position);
+        classAdapter.notifyItemRemoved(position);
+
+
+    }
 }
